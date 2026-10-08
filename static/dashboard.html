@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard Quản Trị - Điểm Danh Online</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    :root {
+      --primary: #1e88e5;
+      --primary-dark: #1565c0;
+      --bg-gray: #f8fafc;
+      --card-border: #f1f5f9;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { display: flex; height: 100vh; overflow: hidden; background-color: var(--bg-gray); color: var(--text-main); }
+
+    /* Sidebar */
+    .sidebar { width: 250px; background: var(--primary); color: #ffffff; display: flex; flex-direction: column; flex-shrink: 0; }
+    .sidebar-header { padding: 24px 20px; font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.12); }
+    .sidebar-menu { list-style: none; padding: 16px 0; flex: 1; }
+    .sidebar-menu li a { display: flex; align-items: center; gap: 14px; padding: 14px 24px; color: rgba(255, 255, 255, 0.9); text-decoration: none; font-size: 14px; font-weight: 500; transition: background 0.2s; }
+    .sidebar-menu li a:hover, .sidebar-menu li.active a { background: rgba(255, 255, 255, 0.15); color: #ffffff; }
+    .badge-live { margin-left: auto; background: var(--success); color: #ffffff; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; text-transform: uppercase; }
+
+    .sidebar-footer { padding: 20px; border-top: 1px solid rgba(255, 255, 255, 0.12); }
+    .btn-train { width: 100%; background: var(--warning); color: #ffffff; border: none; border-radius: 8px; padding: 12px; font-weight: 700; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3); transition: opacity 0.2s; }
+    .btn-train:hover { opacity: 0.95; }
+    .btn-logout { display: flex; align-items: center; gap: 8px; margin-top: 12px; color: rgba(255, 255, 255, 0.85); text-decoration: none; font-size: 13px; font-weight: 500; }
+
+    /* Main Area */
+    .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
+    .topbar { height: 64px; background: #ffffff; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; position: sticky; top: 0; z-index: 10; }
+    .topbar h2 { font-size: 20px; font-weight: 700; }
+    .clock-badge { font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; background: #f1f5f9; padding: 6px 14px; border-radius: 999px; }
+
+    .content { padding: 32px; max-width: 1400px; width: 100%; margin: 0 auto; }
+
+    /* 4 Thẻ thống kê */
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin-bottom: 32px; }
+    .stat-card { background: #ffffff; border-radius: 12px; padding: 24px; border: 1px solid var(--card-border); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); display: flex; align-items: center; justify-content: space-between; }
+    .stat-card p { font-size: 13px; color: var(--text-muted); margin-bottom: 6px; }
+    .stat-card h3 { font-size: 32px; font-weight: 800; color: #0f172a; }
+    .stat-icon { width: 52px; height: 52px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+
+    /* Card Hoạt động */
+    .panel { background: #ffffff; border-radius: 12px; border: 1px solid var(--card-border); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); padding: 24px; }
+    .panel-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 1px solid #f1f5f9; margin-bottom: 20px; }
+    .panel-header h3 { font-size: 16px; font-weight: 700; }
+    .btn-refresh { background: var(--primary); color: #ffffff; border: none; padding: 8px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+
+    .table-container { width: 100%; border-collapse: collapse; text-align: left; }
+    .table-container th { padding: 12px 16px; font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+    .table-container td { padding: 12px 16px; font-size: 14px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+    .snap-sm { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; border: 1px solid #e2e8f0; }
+
+    .empty-state { padding: 50px 0; text-align: center; color: #94a3b8; }
+    .empty-state i { font-size: 40px; margin-bottom: 12px; opacity: 0.8; }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div>
+      <div class="sidebar-header">
+        <i class="fa-solid fa-graduation-cap"></i>
+        <span>Điểm Danh Online</span>
+      </div>
+      <ul class="sidebar-menu">
+        <li class="active"><a href="/dashboard"><i class="fa-solid fa-compass"></i> Trang chủ</a></li>
+        <li><a href="/students"><i class="fa-solid fa-user-graduate"></i> Quản lý sinh viên</a></li>
+        <li><a href="/classes"><i class="fa-solid fa-users"></i> Quản lý lớp học</a></li>
+        <li>
+          <a href="/attendance" target="_blank">
+            <i class="fa-solid fa-camera"></i> Ghi nhận ra/vào
+            <span class="badge-live">Live</span>
+          </a>
+        </li>
+        <li><a href="/history"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử ra/vào</a></li>
+      </ul>
+    </div>
+
+    <div class="sidebar-footer">
+      <button class="btn-train" id="btn-train-action" onclick="triggerFaceTraining()">
+        <i class="fa-solid fa-brain"></i> Training Dữ Liệu
+      </button>
+      <a href="/logout" class="btn-logout"><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất</a>
+    </div>
+  </aside>
+
+  <!-- Khung nội dung -->
+  <main class="main-wrapper">
+    <header class="topbar">
+      <h2>Trang chủ</h2>
+      <div class="clock-badge">
+        <i class="fa-regular fa-clock" style="color: var(--primary);"></i>
+        <span id="liveClock">Đang đồng bộ...</span>
+      </div>
+    </header>
+
+    <div class="content">
+      <!-- 4 Thẻ thống kê động -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div>
+            <p>Tổng số lớp</p>
+            <h3>{{ stats.classes }}</h3>
+          </div>
+          <div class="stat-icon" style="background: #eff6ff; color: #2563eb;">
+            <i class="fa-solid fa-desktop"></i>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div>
+            <p>Tổng số sinh viên</p>
+            <h3>{{ stats.students }}</h3>
+          </div>
+          <div class="stat-icon" style="background: #fffbeb; color: #f59e0b;">
+            <i class="fa-solid fa-user-group"></i>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div>
+            <p>SV đã điểm danh</p>
+            <h3 style="color: #10b981;">{{ stats.checked_in }}</h3>
+          </div>
+          <div class="stat-icon" style="background: #ecfdf5; color: #10b981;">
+            <i class="fa-solid fa-circle-check"></i>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div>
+            <p>SV chưa điểm danh</p>
+            <h3 style="color: #ef4444;">{{ stats.not_checked_in }}</h3>
+          </div>
+          <div class="stat-icon" style="background: #fef2f2; color: #ef4444;">
+            <i class="fa-solid fa-circle-xmark"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hoạt động gần đây -->
+      <div class="panel">
+        <div class="panel-header">
+          <h3>Hoạt động gần đây</h3>
+          <button class="btn-refresh" onclick="location.reload()">
+            <i class="fa-solid fa-arrows-rotate"></i> Làm mới
+          </button>
+        </div>
+
+        {% if recent_logs %}
+        <table class="table-container">
+          <thead>
+            <tr>
+              <th style="width: 70px;">Ảnh</th>
+              <th>Mã SV</th>
+              <th>Họ và Tên</th>
+              <th>Lớp</th>
+              <th>Thời gian</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for log in recent_logs %}
+            <tr>
+              <td>
+                <img src="/{{ log.snapshot_path }}" class="snap-sm" onerror="this.src='https://ui-avatars.com/api/?name={{ log.full_name or log.student_id }}'" alt="snap">
+              </td>
+              <td style="font-weight: 700;">{{ log.student_id }}</td>
+              <td>{{ log.full_name or "N/A" }}</td>
+              <td><span style="background:#eff6ff; color:#2563eb; padding:3px 8px; border-radius:4px; font-size:12px; font-weight:600;">{{ log.class_id or "N/A" }}</span></td>
+              <td style="color: var(--text-muted);"><i class="fa-regular fa-clock"></i> {{ log.timestamp }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+          <i class="fa-solid fa-circle-info"></i>
+          <p>Chưa có hoạt động điểm danh hôm nay</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </main>
+
+  <script>
+    function updateClock() {
+      const d = new Date();
+      document.getElementById('liveClock').innerText = d.toLocaleString('vi-VN');
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Hàm training riêng đã bị GỘP vào triggerFaceTraining() trong dashboard.js
+    // (2 hàm này trước đây làm y hệt 1 việc ở 2 nơi khác nhau, dễ lệch khi sửa 1 nơi
+    // mà quên nơi còn lại). Nút bấm phía trên giờ gọi thẳng hàm dùng chung đó.
+  </script>
+  <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

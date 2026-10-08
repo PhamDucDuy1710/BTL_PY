@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hệ Thống Điểm Danh Sinh Viên - Đăng nhập Quản trị viên</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #f1f5f9;
+      padding: 20px;
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 950px;
+      min-height: 520px;
+      background: #ffffff;
+      border-radius: 20px;
+      display: flex;
+      overflow: hidden;
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08);
+      border: 1px solid #e2e8f0;
+    }
+
+    .left-panel {
+      flex: 1.1;
+      background: linear-gradient(135deg, #0284c7, #2563eb 60%, #4338ca);
+      padding: 44px;
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.15);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 20px;
+    }
+
+    .dot-pulse {
+      width: 8px;
+      height: 8px;
+      background: #34d399;
+      border-radius: 50%;
+    }
+
+    .left-panel h1 {
+      font-size: 26px;
+      line-height: 1.4;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      text-transform: uppercase;
+    }
+
+    .left-panel p {
+      margin-top: 10px;
+      font-size: 14px;
+      opacity: 0.9;
+      line-height: 1.6;
+    }
+
+    .artwork {
+      text-align: center;
+      margin: 25px 0;
+    }
+
+    .artwork i {
+      font-size: 80px;
+      opacity: 0.95;
+    }
+
+    .quick-actions {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .btn-quick {
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 12px 6px;
+      border-radius: 10px;
+      color: #ffffff;
+      text-decoration: none;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+
+    .btn-quick:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    .btn-quick i {
+      font-size: 18px;
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    .right-panel {
+      flex: 0.9;
+      padding: 48px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      background: #ffffff;
+    }
+
+    .brand-icon {
+      width: 48px;
+      height: 48px;
+      background: #eff6ff;
+      color: #2563eb;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      margin-bottom: 16px;
+    }
+
+    .right-panel h2 {
+      font-size: 22px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .right-panel .subtext {
+      font-size: 14px;
+      color: #64748b;
+      margin-top: 4px;
+      margin-bottom: 24px;
+    }
+
+    .error-box {
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: #fee2e2;
+      border: 1px solid #fca5a5;
+      color: #b91c1c;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: #334155;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    .input-wrapper input {
+      width: 100%;
+      padding: 12px 14px 12px 40px;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      background: #f8fafc;
+      font-size: 14px;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .input-wrapper input:focus {
+      background: #ffffff;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+
+    .input-wrapper i {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #94a3b8;
+    }
+
+    .form-options {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      color: #64748b;
+      margin-bottom: 24px;
+    }
+
+    .btn-submit {
+      width: 100%;
+      padding: 14px;
+      background: #2563eb;
+      color: #ffffff;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+      transition: background 0.2s;
+    }
+
+    .btn-submit:hover {
+      background: #1d4ed8;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-card">
+    <!-- Nửa bên trái -->
+    <div class="left-panel">
+      <div>
+        <div class="badge-pill">
+          <span class="dot-pulse"></span> Face Recognition v2.0
+        </div>
+        <h1>Hệ Thống Điểm Danh<br>Nhận Diện Khuôn Mặt</h1>
+        <p>Giải pháp thông minh ghi nhận lịch sử ra vào và quản trị sinh viên theo thời gian thực.</p>
+      </div>
+
+      <div class="artwork">
+        <i class="fa-solid fa-graduation-cap"></i>
+      </div>
+
+      <div class="quick-actions">
+        <a href="/attendance" class="btn-quick">
+          <i class="fa-solid fa-camera"></i>
+          <span>Kiosk Quét Mặt</span>
+        </a>
+        <a href="/dashboard" class="btn-quick">
+          <i class="fa-solid fa-gauge"></i>
+          <span>Bảng Quản Trị</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Nửa bên phải -->
+    <div class="right-panel">
+      <div class="brand-icon">
+        <i class="fa-solid fa-id-card-clip"></i>
+      </div>
+      <h2>ClassAttendance</h2>
+      <p class="subtext">Đăng nhập tài khoản Quản trị viên</p>
+
+      {% if error %}
+      <div class="error-box">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        <span>{{ error }}</span>
+      </div>
+      {% endif %}
+
+      <form action="/login" method="POST">
+        <div class="form-group">
+          <label>Tên đăng nhập</label>
+          <div class="input-wrapper">
+            <i class="fa-regular fa-user"></i>
+            <input type="text" name="username" required placeholder="Nhập tên đăng nhập" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Mật khẩu</label>
+          <div class="input-wrapper">
+            <i class="fa-solid fa-lock"></i>
+            <input type="password" name="password" required placeholder="Nhập mật khẩu" />
+          </div>
+        </div>
+
+        <div class="form-options">
+          <label style="cursor: pointer; display: flex; align-items: center; gap: 6px;">
+            <input type="checkbox" checked /> Ghi nhớ đăng nhập
+          </label>
+        </div>
+
+        <button type="submit" class="btn-submit">Đăng nhập</button>
+      </form>
+    </div>
+  </div>
+
+</body>
+</html>

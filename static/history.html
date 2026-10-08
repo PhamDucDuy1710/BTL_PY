@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lịch Sử Ra/Vào - Điểm Danh Online</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    :root {
+      --primary: #1e88e5;
+      --primary-dark: #1565c0;
+      --bg-gray: #f8fafc;
+      --card-border: #e2e8f0;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --danger: #ef4444;
+      --success: #10b981;
+      --warning: #f59e0b;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { display: flex; height: 100vh; overflow: hidden; background-color: var(--bg-gray); color: var(--text-main); }
+
+    /* Sidebar chuẩn hóa */
+    .sidebar { width: 250px; background: var(--primary); color: #ffffff; display: flex; flex-direction: column; flex-shrink: 0; }
+    .sidebar-header { padding: 24px 20px; font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.12); }
+    .sidebar-menu { list-style: none; padding: 16px 0; flex: 1; }
+    .sidebar-menu li a { display: flex; align-items: center; gap: 14px; padding: 14px 24px; color: rgba(255, 255, 255, 0.9); text-decoration: none; font-size: 14px; font-weight: 500; transition: background 0.2s; }
+    .sidebar-menu li a:hover, .sidebar-menu li.active a { background: rgba(255, 255, 255, 0.15); color: #ffffff; }
+    .badge-live { margin-left: auto; background: var(--success); color: #ffffff; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; text-transform: uppercase; }
+
+    .sidebar-footer { padding: 20px; border-top: 1px solid rgba(255, 255, 255, 0.12); }
+    .btn-train { width: 100%; background: var(--warning); color: #ffffff; border: none; border-radius: 8px; padding: 12px; font-weight: 700; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3); }
+    .btn-logout { display: flex; align-items: center; gap: 8px; margin-top: 12px; color: rgba(255, 255, 255, 0.85); text-decoration: none; font-size: 13px; font-weight: 500; }
+
+    /* Main Area & Header */
+    .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
+    .topbar { height: 64px; background: #ffffff; border-bottom: 1px solid var(--card-border); display: flex; align-items: center; justify-content: space-between; padding: 0 32px; position: sticky; top: 0; z-index: 10; }
+    .topbar h2 { font-size: 20px; font-weight: 700; }
+    .clock-badge { font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; background: #f1f5f9; padding: 6px 14px; border-radius: 999px; }
+
+    .content { padding: 32px; max-width: 1400px; width: 100%; margin: 0 auto; }
+
+    /* Bộ lọc */
+    .filter-bar { display: flex; gap: 16px; margin-bottom: 24px; align-items: center; }
+    .search-box { display: flex; align-items: center; gap: 10px; background: #ffffff; border: 1px solid var(--card-border); border-radius: 8px; padding: 10px 16px; width: 360px; }
+    .search-box input { border: none; outline: none; width: 100%; font-size: 14px; }
+    .class-select { padding: 10px 16px; border: 1px solid var(--card-border); border-radius: 8px; background: #ffffff; outline: none; font-size: 14px; color: var(--text-main); }
+
+    /* Bảng dữ liệu */
+    .table-container { background: #ffffff; border-radius: 12px; border: 1px solid var(--card-border); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    thead tr { background: #f8fafc; border-bottom: 1px solid var(--card-border); }
+    th { padding: 14px 20px; font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    td { padding: 14px 20px; font-size: 14px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+    tbody tr:hover { background: #f8fafc; }
+
+    .badge-class { background: #eff6ff; color: #2563eb; padding: 5px 12px; border-radius: 6px; font-weight: 600; font-size: 13px; }
+    .thumb-snap { width: 44px; height: 44px; object-fit: cover; border-radius: 8px; border: 1px solid var(--card-border); }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar đồng bộ -->
+  <aside class="sidebar">
+    <div>
+      <div class="sidebar-header">
+        <i class="fa-solid fa-graduation-cap"></i>
+        <span>Điểm Danh Online</span>
+      </div>
+      <ul class="sidebar-menu">
+        <li><a href="/dashboard"><i class="fa-solid fa-compass"></i> Trang chủ</a></li>
+        <li><a href="/students"><i class="fa-solid fa-user-graduate"></i> Quản lý sinh viên</a></li>
+        <li><a href="/classes"><i class="fa-solid fa-users"></i> Quản lý lớp học</a></li>
+        <li>
+          <a href="/attendance" target="_blank">
+            <i class="fa-solid fa-camera"></i> Ghi nhận ra/vào
+            <span class="badge-live">Live</span>
+          </a>
+        </li>
+        <li class="active"><a href="/history"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử ra/vào</a></li>
+      </ul>
+    </div>
+
+    <div class="sidebar-footer">
+      <button class="btn-train" id="btn-train-action" onclick="triggerFaceTraining()">
+        <i class="fa-solid fa-brain"></i> Training Dữ Liệu
+      </button>
+      <a href="/logout" class="btn-logout"><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất</a>
+    </div>
+  </aside>
+
+  <!-- Khung nội dung -->
+  <main class="main-wrapper">
+    <header class="topbar">
+      <h2>Lịch Sử Ra/Vào</h2>
+      <div class="clock-badge">
+        <i class="fa-regular fa-clock" style="color: var(--primary);"></i>
+        <span id="liveClock">Đang tải...</span>
+      </div>
+    </header>
+
+    <div class="content">
+      <div class="filter-bar">
+        <div class="search-box">
+          <i class="fa-solid fa-magnifying-glass" style="color: var(--text-muted);"></i>
+          <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Tìm kiếm mã SV hoặc họ tên..." />
+        </div>
+        <select id="classFilter" class="class-select" onchange="filterTable()">
+          <option value="">-- Tất cả lớp học --</option>
+          {% for c in classes %}
+          <option value="{{ c.class_id }}">{{ c.class_id }} - {{ c.class_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="table-container">
+        <table id="historyTable">
+          <thead>
+            <tr>
+              <th style="width: 70px;">STT</th>
+              <th style="width: 80px;">Ảnh</th>
+              <th>Mã Sinh Viên</th>
+              <th>Họ Và Tên</th>
+              <th>Lớp Học</th>
+              <th>Thời Gian Điểm Danh</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for log in logs %}
+            <tr>
+              <td style="font-weight: 700; color: var(--text-muted);">{{ loop.index }}</td>
+              <td>
+                {% if log.snapshot_path %}
+                <img src="/{{ log.snapshot_path }}" class="thumb-snap" onerror="this.src='https://ui-avatars.com/api/?name={{ log.full_name or log.student_id }}'" alt="snap">
+                {% else %}
+                <span style="color: var(--text-muted);">N/A</span>
+                {% endif %}
+              </td>
+              <td style="font-weight: 700; color: #0f172a;">{{ log.student_id }}</td>
+              <td style="font-weight: 600;">{{ log.full_name or "Chưa cập nhật" }}</td>
+              <td><span class="badge-class">{{ log.class_id or "N/A" }}</span></td>
+              <td style="color: var(--text-muted);"><i class="fa-regular fa-clock" style="color: var(--primary); margin-right: 4px;"></i> {{ log.timestamp }}</td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 40px;">Chưa có bản ghi điểm danh nào.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    function updateClock() {
+      const d = new Date();
+      document.getElementById('liveClock').innerText = d.toLocaleString('vi-VN');
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    function filterTable() {
+      const input = document.getElementById("searchInput").value.toUpperCase();
+      const classVal = document.getElementById("classFilter").value.toUpperCase();
+      const tr = document.getElementById("historyTable").getElementsByTagName("tr");
+
+      for (let i = 1; i < tr.length; i++) {
+        const tdId = tr[i].getElementsByTagName("td")[2];
+        const tdName = tr[i].getElementsByTagName("td")[3];
+        const tdClass = tr[i].getElementsByTagName("td")[4];
+        if (tdId && tdName && tdClass) {
+          const txtId = tdId.textContent || tdId.innerText;
+          const txtName = tdName.textContent || tdName.innerText;
+          const txtClass = tdClass.textContent || tdClass.innerText;
+          
+          const matchText = txtId.toUpperCase().indexOf(input) > -1 || txtName.toUpperCase().indexOf(input) > -1;
+          const matchClass = classVal === "" || txtClass.toUpperCase().indexOf(classVal) > -1;
+
+          tr[i].style.display = (matchText && matchClass) ? "" : "none";
+        }
+      }
+    }
+  </script>
+  <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

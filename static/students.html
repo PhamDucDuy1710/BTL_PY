@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quản Lý Sinh Viên - Điểm Danh Online</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    :root {
+      --primary: #1e88e5;
+      --primary-dark: #1565c0;
+      --bg-gray: #f8fafc;
+      --card-border: #e2e8f0;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --danger: #ef4444;
+      --success: #10b981;
+      --warning: #f59e0b;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { display: flex; height: 100vh; overflow: hidden; background-color: var(--bg-gray); color: var(--text-main); }
+
+    .sidebar { width: 250px; background: var(--primary); color: #ffffff; display: flex; flex-direction: column; flex-shrink: 0; }
+    .sidebar-header { padding: 24px 20px; font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.12); }
+    .sidebar-menu { list-style: none; padding: 16px 0; flex: 1; }
+    .sidebar-menu li a { display: flex; align-items: center; gap: 14px; padding: 14px 24px; color: rgba(255, 255, 255, 0.9); text-decoration: none; font-size: 14px; font-weight: 500; }
+    .sidebar-menu li a:hover, .sidebar-menu li.active a { background: rgba(255, 255, 255, 0.15); color: #ffffff; }
+    .sidebar-footer { padding: 20px; border-top: 1px solid rgba(255, 255, 255, 0.12); }
+    .btn-train { width: 100%; background: var(--warning); color: #ffffff; border: none; border-radius: 8px; padding: 12px; font-weight: 700; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-logout { display: flex; align-items: center; gap: 8px; margin-top: 12px; color: rgba(255, 255, 255, 0.85); text-decoration: none; font-size: 13px; }
+
+    .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
+    .topbar { height: 64px; background: #ffffff; border-bottom: 1px solid var(--card-border); display: flex; align-items: center; justify-content: space-between; padding: 0 32px; }
+    .topbar h2 { font-size: 20px; font-weight: 700; }
+    .clock-badge { font-size: 13px; color: var(--text-muted); }
+
+    .content { padding: 32px; max-width: 1400px; width: 100%; margin: 0 auto; }
+    .action-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .search-box { display: flex; align-items: center; gap: 10px; background: #ffffff; border: 1px solid var(--card-border); border-radius: 8px; padding: 10px 16px; width: 360px; }
+    .search-box input { border: none; outline: none; width: 100%; font-size: 14px; }
+    .btn-add { background: var(--primary); color: #ffffff; border: none; border-radius: 8px; padding: 11px 20px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+
+    .table-container { background: #ffffff; border-radius: 12px; border: 1px solid var(--card-border); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    thead tr { background: #f8fafc; border-bottom: 1px solid var(--card-border); }
+    th { padding: 14px 20px; font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
+    td { padding: 14px 20px; font-size: 14px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+    .avatar-sm { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; }
+    .badge-class { background: #eff6ff; color: #2563eb; padding: 5px 12px; border-radius: 6px; font-weight: 600; }
+    .btn-action.delete { color: var(--danger); background: none; border: none; cursor: pointer; font-size: 16px; }
+
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+    .modal-overlay.active { display: flex; }
+    .modal-card { background: #ffffff; border-radius: 16px; width: 100%; max-width: 650px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
+    .modal-header { padding: 20px 24px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+    .modal-header h3 { font-size: 18px; font-weight: 700; color: #0284c7; }
+    .btn-close-modal { background: none; border: none; font-size: 20px; cursor: pointer; color: #64748b; }
+    
+    .modal-body { padding: 24px; }
+    .section-title { font-size: 14px; font-weight: 700; color: #0284c7; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 6px; }
+    .badge-req { background: #ef4444; color: #fff; font-size: 10px; padding: 1px 6px; border-radius: 999px; margin-left: 4px; }
+    .form-group input, .form-group select { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; outline: none; }
+
+    .cam-section { margin-top: 18px; }
+    .cam-controls { display: flex; gap: 10px; margin-bottom: 12px; }
+    .btn-cam-snap { background: #10b981; color: #fff; border: none; padding: 9px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+    .btn-cam-toggle { background: #ef4444; color: #fff; border: none; padding: 9px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+    .video-viewport { width: 100%; height: 320px; background: #000; border-radius: 10px; overflow: hidden; position: relative; }
+    #webcamVideo { width: 100%; height: 100%; object-fit: cover; }
+    #captureCanvas { display: none; }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <i class="fa-solid fa-graduation-cap"></i>
+      <span>Điểm Danh Online</span>
+    </div>
+    <ul class="sidebar-menu">
+      <li><a href="/dashboard"><i class="fa-solid fa-compass"></i> Trang chủ</a></li>
+      <li class="active"><a href="/students"><i class="fa-solid fa-user-graduate"></i> Quản lý sinh viên</a></li>
+      <li><a href="/classes"><i class="fa-solid fa-users"></i> Quản lý lớp học</a></li>
+      <li><a href="/attendance" target="_blank"><i class="fa-solid fa-camera"></i> Ghi nhận ra/vào</a></li>
+      <li><a href="/history"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử ra/vào</a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <button class="btn-train" id="btn-train-action" onclick="triggerFaceTraining()">
+        <i class="fa-solid fa-brain"></i> Training Dữ Liệu
+      </button>
+      <a href="/logout" class="btn-logout"><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất</a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-wrapper">
+    <header class="topbar">
+      <h2>Quản Lý Sinh Viên</h2>
+      <div class="clock-badge" id="liveClock"></div>
+    </header>
+
+    <div class="content">
+      <div class="action-bar">
+        <div class="search-box">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="searchInput" placeholder="Tìm kiếm sinh viên..." onkeyup="filterTable()" />
+        </div>
+        <button class="btn-add" onclick="openAddModal()">
+          <i class="fa-solid fa-user-plus"></i> Thêm sinh viên mới
+        </button>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 70px;">STT</th>
+              <th style="width: 80px;">Ảnh</th>
+              <th>Mã Sinh Viên</th>
+              <th>Họ và Tên</th>
+              <th>Lớp</th>
+              <th style="width: 100px; text-align: center;">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody id="studentTableBody">
+            {% for s in students %}
+            <tr>
+              <td style="font-weight: 700; color: var(--text-muted);">{{ loop.index }}</td>
+              <td>
+                <img src="/dataset_image/{{ s.student_id }}/{{ s.student_id }}_1.jpg" 
+                     class="avatar-sm" 
+                     onerror="this.src='https://ui-avatars.com/api/?name={{ s.full_name }}&background=random'" 
+                     alt="{{ s.student_id }}" />
+              </td>
+              <td style="font-weight: 700;">{{ s.student_id }}</td>
+              <td>{{ s.full_name }}</td>
+              <td><span class="badge-class">{{ s.class_id }}</span></td>
+              <td style="text-align: center;">
+                <button class="btn-action delete" onclick="deleteStudent('{{ s.student_id }}')">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="6" style="text-align:center; padding: 40px; color: var(--text-muted);">Chưa có sinh viên nào.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal Thêm Sinh Viên & WebRTC Camera -->
+  <div class="modal-overlay" id="addStudentModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Thêm sinh viên mới</h3>
+        <button class="btn-close-modal" onclick="closeAddModal()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="section-title"><i class="fa-solid fa-user"></i> Thông tin sinh viên</div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Mã sinh viên <span class="badge-req">Bắt buộc</span></label>
+            <input type="text" id="m_student_id" placeholder="Ví dụ: B24DCKH044" required />
+          </div>
+          <div class="form-group">
+            <label>Họ và tên <span class="badge-req">Bắt buộc</span></label>
+            <input type="text" id="m_full_name" placeholder="Ví dụ: Nguyễn Văn Lâm" required />
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label>Lớp học</label>
+          <input type="text" id="m_class_id" placeholder="Ví dụ: CNTT-K65 - Công nghệ thông tin K65" required />
+        </div>
+
+        <div class="cam-section">
+          <div class="section-title"><i class="fa-solid fa-camera"></i> Chụp ảnh khuôn mặt</div>
+          <div class="cam-controls">
+            <button type="button" class="btn-cam-snap" id="btnSnapAndSave" onclick="captureAndSubmit()">
+              <i class="fa-solid fa-camera"></i> Chụp ảnh & Lưu
+            </button>
+            <button type="button" class="btn-cam-toggle" onclick="stopWebcam()">
+              <i class="fa-solid fa-power-off"></i> Tắt camera
+            </button>
+          </div>
+
+          <div class="video-viewport">
+            <video id="webcamVideo" autoplay playsinline muted></video>
+          </div>
+          <canvas id="captureCanvas"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Đồng hồ thời gian thực
+    setInterval(() => {
+      document.getElementById('liveClock').innerText = new Date().toLocaleString('vi-VN');
+    }, 1000);
+
+    let streamTracker = null;
+
+    async function startWebcam() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+        document.getElementById('webcamVideo').srcObject = stream;
+        streamTracker = stream;
+      } catch (err) {
+        alert("Không thể truy cập Webcam trình duyệt: " + err.message);
+      }
+    }
+
+    function stopWebcam() {
+      if (streamTracker) {
+        streamTracker.getTracks().forEach(track => track.stop());
+        streamTracker = null;
+      }
+    }
+
+    function openAddModal() {
+      document.getElementById('addStudentModal').classList.add('active');
+      startWebcam();
+    }
+
+    function closeAddModal() {
+      stopWebcam();
+      document.getElementById('addStudentModal').classList.remove('active');
+    }
+
+    async function captureAndSubmit() {
+      const student_id = document.getElementById('m_student_id').value.trim();
+      const full_name = document.getElementById('m_full_name').value.trim();
+      const class_id = document.getElementById('m_class_id').value.trim();
+
+      if (!student_id || !full_name) {
+        alert("Vui lòng nhập đầy đủ Mã sinh viên và Họ tên!");
+        return;
+      }
+
+      const video = document.getElementById('webcamVideo');
+      const canvas = document.getElementById('captureCanvas');
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const base64Image = canvas.toDataURL('image/jpeg', 0.95);
+
+      const btn = document.getElementById('btnSnapAndSave');
+      const originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang lưu...`;
+
+      try {
+        const response = await fetch('/api/students/register_face', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            student_id: student_id,
+            full_name: full_name,
+            class_id: class_id,
+            image: base64Image
+          })
+        });
+
+        const result = await response.json();
+        if (response.ok && result.success) {
+          stopWebcam();
+          closeAddModal();
+          alert("✅ " + result.message);
+          location.reload();
+        } else {
+          alert("❌ Lỗi: " + result.message);
+        }
+      } catch (err) {
+        alert("❌ Lỗi kết nối máy chủ!");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      }
+    }
+
+    async function deleteStudent(id) {
+      if (!confirm(`Bạn có chắc muốn xóa sinh viên ${id}?`)) return;
+      try {
+        const res = await fetch(`/api/students/delete/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          alert("Đã xóa hoàn toàn sinh viên!");
+          location.reload();
+        } else {
+          alert("Lỗi khi xóa sinh viên trên server!");
+        }
+      } catch (e) {
+        alert("Lỗi khi gửi yêu cầu xóa!");
+      }
+    }
+
+    function filterTable() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      const rows = document.querySelectorAll('#studentTableBody tr');
+      rows.forEach(r => {
+        r.style.display = r.innerText.toLowerCase().includes(q) ? '' : 'none';
+      });
+    }
+  </script>
+  <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

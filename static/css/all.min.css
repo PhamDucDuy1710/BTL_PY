@@ -1,0 +1,137 @@
+/* ==========================================================================
+   Font Awesome Offline Standalone Fallback (Pure CSS Vector Icons)
+   Tự động hiển thị toàn bộ icon của hệ thống không cần mạng / internet
+   ========================================================================== */
+
+.fa, .fas, .fa-solid, .far, .fa-regular {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  line-height: 1;
+  vertical-align: -0.125em;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+/* Hiệu ứng xoay spinner khi bấm nút Training */
+.fa-spin {
+  animation: fa-spin-kf 1s infinite linear;
+}
+@keyframes fa-spin-kf {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* --------------------------------------------------------------------------
+   MÃ NGUỒN CÁC ICON HỆ THỐNG ĐANG DÙNG (DẠNG SVG VECTOR TINH KHIẾT)
+   -------------------------------------------------------------------------- */
+
+/* Camera (Header & nút camera) */
+.fa-camera {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23ffffff'%3E%3Cpath d='M149.1 64l-20.3 32H64C28.7 96 0 124.7 0 160V416c0 35.3 28.7 64 64 64H448c35.3 0 64-28.7 64-64V160c0-35.3-28.7-64-64-64H383.2L362.9 64H149.1zM256 192a96 96 0 1 1 0 192 96 96 0 1 1 0-192z'/%3E%3C/svg%3E");
+}
+
+/* Khối Cube (Logo DormManager) */
+.fa-cube {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 448 512' fill='%232563eb'%3E%3Cpath d='M235.8 4.2c-7.3-5.6-16.3-5.6-23.6 0L17.4 153.2c-10.7 8.2-17.4 21.1-17.4 34.8V324c0 13.7 6.7 26.6 17.4 34.8L212.2 507.8c7.3 5.6 16.3 5.6 23.6 0L430.6 358.8c10.7-8.2 17.4-21.1 17.4-34.8V188c0-13.7-6.7-26.6-17.4-34.8L235.8 4.2z'/%3E%3C/svg%3E");
+}
+
+/* User / Khách hàng / Sinh viên */
+.fa-user, .fa-user-graduate {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 448 512' fill='%2364748b'%3E%3Cpath d='M224 256A128 128 0 1 0 224 0a128 128 0 1 0 0 256zm-45.7 48C79.8 304 0 383.8 0 482.3 0 498.7 13.3 512 29.7 512H418.3c16.4 0 29.7-13.3 29.7-29.7 0-98.5-79.8-178.3-178.3-178.3H178.3z'/%3E%3C/svg%3E");
+}
+
+/* Khóa bảo mật (Trang Login) */
+.fa-lock {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 448 512' fill='%2364748b'%3E%3Cpath d='M144 144v48H304V144c0-44.2-35.8-80-80-80s-80 35.8-80 80zM80 192V144C80 64.5 144.5 0 224 0s144 64.5 144 144v48h16c35.3 0 64 28.7 64 64V448c0 35.3-28.7 64-64 64H64c-35.3 0-64-28.7-64-64V256c0-35.3 28.7-64 64-64H80z'/%3E%3C/svg%3E");
+}
+
+/* Khách sạn / Tòa nhà KTX (Trang Login bên trái) */
+.fa-hotel {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23ffffff'%3E%3Cpath d='M64 32C28.7 32 0 60.7 0 96V448c0 35.3 28.7 64 64 64H448c35.3 0 64-28.7 64-64V96c0-35.3-28.7-64-64-64H64zM128 128h64v64H128V128zm0 128h64v64H128V256zm128-128h64v64H256V128zm0 128h64v64H256V256z'/%3E%3C/svg%3E");
+}
+
+/* Mũ tốt nghiệp (Quản lý lớp học / Menu) */
+.fa-graduation-cap {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 512' fill='%232563eb'%3E%3Cpath d='M320 32L0 192l320 160 224-112v128h64V208L320 32zM128 325.8V416c0 53 86 96 192 96s192-43 192-96V325.8L320 421.8 128 325.8z'/%3E%3C/svg%3E");
+}
+
+/* Biểu đồ tròn Chart Pie (Trang chủ Menu) */
+.fa-chart-pie {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512' fill='%232563eb'%3E%3Cpath d='M304 0C136.1 0 0 136.1 0 304c0 148.5 106.3 272.2 247.2 298.6c16.3 3.1 32.8-8.7 32.8-25.3V32c0-17.7-14.3-32-32-32zM336 272V32c0-17.7 14.3-32 32-32 148.5 0 272.2 106.3 298.6 247.2 3.1 16.3-8.7 32.8-25.3 32.8H336z'/%3E%3C/svg%3E");
+}
+
+/* Đồng hồ Thời gian */
+.fa-clock, .fa-clock-rotate-left {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23475569'%3E%3Cpath d='M256 0a256 256 0 1 1 0 512A256 256 0 1 1 256 0zm0 96c-8.8 0-16 7.2-16 16v136.7l-74.3 74.3c-6.2 6.2-6.2 16.4 0 22.6s16.4 6.2 22.6 0l80-80c4.7-4.7 7.7-11.1 7.7-17.7V112c0-8.8-7.2-16-16-16z'/%3E%3C/svg%3E");
+}
+
+/* Nhóm sinh viên / Nhiều người */
+.fa-users, .fa-user-group {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 512' fill='%23f59e0b'%3E%3Cpath d='M144 0a80 80 0 1 1 0 160A80 80 0 1 1 144 0zM512 0a80 80 0 1 1 0 160A80 80 0 1 1 512 0zM0 384c0-53 43-96 96-96h96c53 0 96 43 96 96v32H0V384zm352 0c0-53 43-96 96-96h96c53 0 96 43 96 96v32H352V384z'/%3E%3C/svg%3E");
+}
+
+/* Màn hình máy tính Desktop (Tổng số lớp) */
+.fa-desktop {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512' fill='%232563eb'%3E%3Cpath d='M64 0C28.7 0 0 28.7 0 64V352c0 35.3 28.7 64 64 64H240l-10.7 32H160c-17.7 0-32 14.3-32 32s14.3 32 32 32H416c17.7 0 32-14.3 32-32s-14.3-32-32-32H346.7L336 416H512c35.3 0 64-28.7 64-64V64c0-35.3-28.7-64-64-64H64z'/%3E%3C/svg%3E");
+}
+
+/* Đã điểm danh (Check xanh) */
+.fa-circle-check, .fa-check {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%2310b981'%3E%3Cpath d='M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM369 209L241 337c-9.4 9.4-24.6 9.4-33.9 0l-64-64c-9.4-9.4-9.4-24.6 0-33.9s24.6-9.4 33.9 0l47 47L335 175c9.4-9.4 24.6-9.4 33.9 0s9.4 24.6 0 33.9z'/%3E%3C/svg%3E");
+}
+
+/* Chưa điểm danh (X đỏ) */
+.fa-circle-xmark, .fa-xmark {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23ef4444'%3E%3Cpath d='M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM175 175c9.4-9.4 24.6-9.4 33.9 0l47 47 47-47c9.4-9.4 24.6-9.4 33.9 0s9.4 24.6 0 33.9l-47 47 47 47c9.4 9.4 9.4 24.6 0 33.9s-24.6 9.4-33.9 0l-47-47-47 47c-9.4 9.4-24.6 9.4-33.9 0s-9.4-24.6 0-33.9l47-47-47-47c-9.4-9.4-9.4-24.6 0-33.9z'/%3E%3C/svg%3E");
+}
+
+/* Não bộ Training AI */
+.fa-brain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%2378350f'%3E%3Cpath d='M384 96c0-35.3-28.7-64-64-64h-32c-35.3 0-64 28.7-64 64H160c-35.3 0-64 28.7-64 64v32c-35.3 0-64 28.7-64 64s28.7 64 64 64v64c0 35.3 28.7 64 64 64h64c0 35.3 28.7 64 64 64h32c35.3 0 64-28.7 64-64h64c35.3 0 64-28.7 64-64v-64c35.3 0 64-28.7 64-64s-28.7-64-64-64V160c0-35.3-28.7-64-64-64h-64z'/%3E%3C/svg%3E");
+}
+
+/* Thẻ ID Card / Danh sách kiểm tra */
+.fa-id-card, .fa-id-badge, .fa-list-check {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512' fill='%232563eb'%3E%3Cpath d='M0 96C0 60.7 28.7 32 64 32H512c35.3 0 64 28.7 64 64V416c0 35.3-28.7 64-64 64H64c-35.3 0-64-28.7-64-64V96zM128 144a48 48 0 1 0 0 96 48 48 0 1 0 0-96zm-48 160c-17.7 0-32 14.3-32 32v16H208V336c0-17.7-14.3-32-32-32H80zm208-144H480v-32H288v32zm0 64H480v-32H288v32zm0 64H416v-32H288v32z'/%3E%3C/svg%3E");
+}
+
+/* Đăng xuất */
+.fa-arrow-right-from-bracket {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23ef4444'%3E%3Cpath d='M377.9 105.9L500.7 228.7c7.5 7.5 11.7 17.7 11.7 28.3s-4.2 20.8-11.7 28.3L377.9 408.1c-15.6 15.6-40.9 15.6-56.6 0s-15.6-40.9 0-56.6l54.1-54.1H160c-22.1 0-40-17.9-40-40s17.9-40 40-40h215.4l-54.1-54.1c-15.6-15.6-15.6-40.9 0-56.6s40.9-15.6 56.6 0zM160 96H64C28.7 96 0 124.7 0 160V352c0 35.3 28.7 64 64 64h96c17.7 0 32-14.3 32-32s-14.3-32-32-32H64V160h96c17.7 0 32-14.3 32-32s-14.3-32-32-32z'/%3E%3C/svg%3E");
+}
+
+/* Nút xoay Refresh / Spinner */
+.fa-arrows-rotate, .fa-spinner {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23475569'%3E%3Cpath d='M142.9 96H240c17.7 0 32-14.3 32-32s-14.3-32-32-32H64C46.3 32 32 46.3 32 64V240c0 17.7 14.3 32 32 32s32-14.3 32-32V142.9L184.6 231c51.2 51.2 134.1 51.2 185.3 0s51.2-134.1 0-185.3L336.5 12.3c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l33.4 33.4c26.2 26.2 26.2 68.8 0 95s-68.8 26.2-95 0L142.9 96z'/%3E%3C/svg%3E");
+}
+
+/* Hòm thư rỗng Inbox (Hoạt động gần đây) */
+.fa-inbox {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512' fill='%2394a3b8'%3E%3Cpath d='M288 352c-44.2 0-80-35.8-80-80h-96L48 448h480l-64-176h-96c0 44.2-35.8 80-80 80zM64 64C28.7 64 0 92.7 0 128V448c0 35.3 28.7 64 64 64H512c35.3 0 64-28.7 64-64V128c0-35.3-28.7-64-64-64H64z'/%3E%3C/svg%3E");
+}
+
+/* Chấm tròn Circle Live */
+.fa-circle {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23ffffff'%3E%3Ccircle cx='256' cy='256' r='256'/%3E%3C/svg%3E");
+}
+/* Thùng rác xóa */
+.fa-trash-can, .fa-trash {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 448 512' fill='%23ef4444'%3E%3Cpath d='M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64S14.3 96 32 96H416c17.7 0 32-14.3 32-32s-14.3-32-32-32H320l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32L53.2 467c1.6 25.3 22.6 45 47.9 45H346.9c25.3 0 46.3-19.7 47.9-45L416 128z'/%3E%3C/svg%3E");
+}
+
+/* Dấu cộng thêm mới */
+.fa-plus, .fa-user-plus {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 448 512' fill='%23ffffff'%3E%3Cpath d='M256 80c0-17.7-14.3-32-32-32s-32 14.3-32 32V224H48c-17.7 0-32 14.3-32 32s14.3 32 32 32H192V432c0 17.7 14.3 32 32 32s32-14.3 32-32V288H400c17.7 0 32-14.3 32-32s-14.3-32-32-32H256V80z'/%3E%3C/svg%3E");
+}
+
+/* Kính lúp tìm kiếm */
+.fa-magnifying-glass {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%2364748b'%3E%3Cpath d='M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z'/%3E%3C/svg%3E");
+}
+
+/* Đồng hồ tốc độ Gauge (Trang chủ Menu) */
+.fa-gauge {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23ffffff'%3E%3Cpath d='M0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256zm320 96c0-35.3-28.7-64-64-64c-3.1 0-6.2 .2-9.2 .7l-78.1-78.1c-6.2-6.2-16.4-6.2-22.6 0s-6.2 16.4 0 22.6l78.1 78.1c-.5 3-.7 6.1-.7 9.2c0 35.3 28.7 64 64 64s64-28.7 64-64z'/%3E%3C/svg%3E");
+}

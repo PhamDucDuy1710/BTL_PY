@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Điểm Danh Sinh Viên - Nhận Diện Khuôn Mặt</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: #5850ec; min-height: 100vh; padding: 25px 40px; color: #1e293b; }
+    .container { max-width: 1300px; margin: 0 auto; }
+    
+    .header { text-align: center; color: #ffffff; margin-bottom: 24px; }
+    .header h1 { font-size: 26px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .header p { font-size: 14px; opacity: 0.9; margin-top: 6px; }
+
+    .main-grid { display: grid; grid-template-columns: 1.25fr 1fr; gap: 24px; margin-bottom: 24px; }
+    .card { background: #ffffff; border-radius: 20px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
+    
+    .cam-box { position: relative; width: 100%; height: 420px; background: #000000; border-radius: 14px; overflow: hidden; }
+    .cam-box img { width: 100%; height: 100%; object-fit: cover; }
+    .badge-live { position: absolute; top: 16px; right: 16px; background: #10b981; color: #ffffff; padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+
+    .card-title { font-size: 18px; font-weight: 700; color: #4338ca; display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
+    
+    .student-box { border: 1px solid #bfdbfe; background-color: #f8fafc; border-left: 5px solid #2563eb; border-radius: 12px; padding: 18px 20px; }
+    .student-name { font-size: 18px; font-weight: 800; color: #1e3a8a; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .student-meta { display: flex; flex-wrap: wrap; gap: 12px; font-size: 13px; color: #64748b; }
+    .badge-cooldown { background: #fffbeb; color: #d97706; padding: 2px 10px; border-radius: 999px; font-weight: 700; }
+
+    .table-card { background: #ffffff; border-radius: 20px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
+    .table-head-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .badge-counter { background: #2563eb; color: #ffffff; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 999px; }
+
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th { background: #4f46e5; color: #ffffff; padding: 12px 16px; font-size: 13px; font-weight: 700; text-transform: uppercase; }
+    th:first-child { border-top-left-radius: 10px; }
+    th:last-child { border-top-right-radius: 10px; text-align: center; }
+    td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155; vertical-align: middle; }
+    tr:hover { background: #f8fafc; }
+    .snap-img { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; border: 1px solid #e2e8f0; display: block; margin: 0 auto; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1><i class="fa-solid fa-camera"></i> Điểm Danh Sinh Viên - Nhận Diện Khuôn Mặt</h1>
+      <p id="screen-clock">Đang kết nối thời gian...</p>
+    </div>
+
+    <div class="main-grid">
+      <div class="card">
+        <div class="cam-box">
+          <div class="badge-live"><i class="fa-solid fa-circle" style="font-size: 8px;"></i> Camera đang hoạt động</div>
+          <img src="/video_feed" alt="Video stream" />
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><i class="fa-regular fa-id-badge"></i> Thông tin sinh viên</div>
+        <div id="profile-box">
+          <div style="text-align: center; padding: 70px 0; color: #94a3b8;">
+            <i class="fa-solid fa-user-clock" style="font-size: 42px; margin-bottom: 10px;"></i>
+            <p style="font-size: 14px;">Đang đợi nhận diện khuôn mặt...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-head-bar">
+        <div class="card-title" style="margin-bottom: 0;"><i class="fa-solid fa-list-check"></i> Danh sách điểm danh</div>
+        <span class="badge-counter" id="total-logs-count">0</span>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 70px;">STT</th>
+            <th>Mã SV</th>
+            <th>Họ tên</th>
+            <th>Lớp</th>
+            <th>Thời gian</th>
+            <th style="width: 120px; text-align: center;">Ảnh điểm danh</th>
+          </tr>
+        </thead>
+        <tbody id="attendance-rows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="/static/js/dashboard.js"></script>
+  <script src="/static/js/attendance.js"></script>
+</body>
+</html>
