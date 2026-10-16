@@ -7,7 +7,13 @@ import pickle
 import inspect
 import threading
 import traceback
+import re
+import secrets
+import face_recognition
+import numpy as np
+from feature_store import FEATURE_LOCK, EMBEDDINGS_FILE, write_embeddings
 from functools import wraps
+from add_persons import serialized_training
 from datetime import datetime
 from flask import Flask, render_template, Response, request, redirect, url_for, session, jsonify, send_from_directory
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -20,9 +26,16 @@ from camera_manager import camera_stream
 init_db()
 
 app = Flask(__name__, template_folder='static', static_folder='static')
-app.secret_key = os.environ.get('FLASK_SECRET_KEY') or 'super_secret_key_attendance_system_2026'
+app.secret_key = os.environ.get('FLASK_SECRET_KEY') or secrets.token_hex(32)
+app.config.update(MAX_CONTENT_LENGTH=6 * 1024 * 1024, SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Lax')
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 recognizer = FaceRecognizer()
+
+@app.before_request
+def protect_snapshots():
+    if request.path.startswith('/static/snapshots/') and 'admin' not in session:
+        return jsonify(success=False, message='Chưa đăng nhập'), 401
 
 
 def login_required(view_func):
@@ -43,8 +56,9 @@ def reload_recognizer_memory():
         recognizer.load_embeddings()
 
 
+@serialized_training
 def sync_pickle_after_deletion(deleted_student_id):
-    emb_path = os.path.join('datasets', 'face_features', 'embeddings.pickle')
+    emb_path = EMBEDDINGS_FILE
     if os.path.exists(emb_path):
         try:
             with open(emb_path, 'rb') as f:
@@ -59,8 +73,7 @@ def sync_pickle_after_deletion(deleted_student_id):
                     new_encs.append(e)
                     new_ids.append(sid)
                     
-            with open(emb_path, 'wb') as f:
-                pickle.dump({'encodings': new_encs, 'ids': new_ids}, f)
+            write_embeddings({'encodings': new_encs, 'ids': new_ids})
             
             reload_recognizer_memory()
         except Exception as err:
@@ -214,6 +227,7 @@ def classes_page():
 
 
 @app.route('/attendance')
+@login_required
 def attendance():
     return render_template('attendance.html')
 
@@ -239,37 +253,38 @@ def history_page():
 @app.route('/dataset_image/<student_id>/<filename>')
 @login_required
 def get_dataset_image(student_id, filename):
+    if not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', student_id):
+        return '', 404
     folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'datasets', 'data', student_id)
+    if filename == 'avatar.jpg' and os.path.isdir(folder):
+        photos = sorted(name for name in os.listdir(folder) if name.lower().endswith(('.jpg', '.jpeg', '.png')))
+        if photos:
+            filename = photos[0]
     return send_from_directory(folder, filename)
 
 
 
 def generate_frames():
-    while True:
-        success, frame = camera_stream.get_frame()
-        if not success:
-            break
-
-        frame = recognizer.process_frame(frame)
-        ret, buffer = cv2.imencode('.jpg', frame)
-        frame_bytes = buffer.tobytes()
-
+    for frame_bytes in camera_stream.frames(recognizer.process_frame):
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
 
 
 @app.route('/video_feed')
+@login_required
 def video_feed():
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
 
 @app.route('/api/current-detected')
+@login_required
 def api_current_detected():
     return jsonify(recognizer.get_current_detected())
 
 
 @app.route('/api/access-logs')
+@login_required
 def api_access_logs():
     conn = get_db_connection()
     logs = conn.execute("""
@@ -287,6 +302,7 @@ def api_access_logs():
             snap = "/" + snap.replace("\\", "/")
 
         data.append({
+            "id": row["id"],
             "stt": idx,
             "student_id": row["student_id"],
             "full_name": row["full_name"] or "Chưa cập nhật",
@@ -310,6 +326,7 @@ def api_train_features():
 
 @app.route('/api/students/register_face', methods=['POST'])
 @login_required
+@serialized_training
 def register_face():
     try:
         data = request.get_json(force=True)
@@ -321,6 +338,22 @@ def register_face():
         if not student_id or not full_name or not image_base64:
             return jsonify({"success": False, "message": "Vui lòng nhập đủ Mã SV, Tên và ảnh!"}), 400
 
+        if not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', student_id):
+            return jsonify(success=False, message='Mã sinh viên chỉ gồm chữ, số, dấu gạch dưới hoặc gạch ngang; tối đa 64 ký tự.'), 400
+        if len(full_name) > 150 or len(class_id) > 100:
+            return jsonify(success=False, message='Tên hoặc mã lớp quá dài.'), 400
+        try:
+            raw = image_base64.split(',', 1)[-1]
+            image_bytes = base64.b64decode(raw, validate=True)
+            image = cv2.imdecode(np.frombuffer(image_bytes, dtype=np.uint8), cv2.IMREAD_COLOR)
+            if image is None or image.shape[0] * image.shape[1] > 4000000:
+                raise ValueError('Ảnh không hợp lệ hoặc kích thước quá lớn.')
+            rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            if len(face_recognition.face_locations(rgb)) != 1:
+                raise ValueError('Ảnh cần có đúng một khuôn mặt rõ nét.')
+        except (ValueError, TypeError) as error:
+            return jsonify(success=False, message=str(error)), 400
+
         conn = get_db_connection()
         conn.execute("INSERT OR IGNORE INTO classes (class_id, class_name) VALUES (?, ?)", 
                      (class_id, class_id))
@@ -331,29 +364,28 @@ def register_face():
         conn.commit()
         conn.close()
 
-        save_dir = os.path.join('datasets', 'data', student_id)
+        save_dir = os.path.join(BASE_DIR, 'datasets', 'data', student_id)
         os.makedirs(save_dir, exist_ok=True)
 
         if ',' in image_base64:
             image_base64 = image_base64.split(',')[1]
 
         image_bytes = base64.b64decode(image_base64)
-        file_count = len([f for f in os.listdir(save_dir) if f.lower().endswith(('.jpg', '.png', '.jpeg'))])
-        file_path = os.path.join(save_dir, f"{student_id}_{file_count + 1}.jpg")
+        file_path = os.path.join(save_dir, f"{student_id}_{secrets.token_hex(8)}.jpg")
         
         with open(file_path, 'wb') as f:
             f.write(image_bytes)
 
         
-        def background_train(sid):
-            safe_extract_features(sid)
+        def train_student(sid):
+            extract_and_update_features(target_student_id=sid)
             reload_recognizer_memory()
 
-        threading.Thread(target=background_train, args=(student_id,), daemon=True).start()
+        train_student(student_id)
 
         return jsonify({
             "success": True, 
-            "message": f"Đã lưu thông tin sinh viên {full_name}. Hệ thống đang trích xuất đặc trưng ngầm!"
+            "message": f"Đã lưu thông tin sinh viên {full_name}. Đã cập nhật đặc trưng khuôn mặt!"
         })
 
     except Exception as e:
@@ -363,8 +395,11 @@ def register_face():
 
 @app.route('/api/students/delete/<student_id>', methods=['DELETE'])
 @login_required
+@serialized_training
 def delete_student(student_id):
     try:
+        if not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', student_id):
+            return jsonify(status='error', message='Mã sinh viên không hợp lệ.'), 400
         conn = get_db_connection()
         conn.execute("DELETE FROM students WHERE student_id = ?", (student_id,))
         conn.execute("DELETE FROM access_logs WHERE student_id = ?", (student_id,))
@@ -372,11 +407,18 @@ def delete_student(student_id):
         conn.close()
 
         for folder in ['datasets/data', 'datasets/new_persons']:
-            p = os.path.join(folder, student_id)
+            p = os.path.join(BASE_DIR, folder, student_id)
             if os.path.exists(p):
                 shutil.rmtree(p, ignore_errors=True)
 
         sync_pickle_after_deletion(student_id)
+        recognizer.last_marked.pop(student_id, None)
+        if recognizer.current_detected and recognizer.current_detected['student_id'] == student_id:
+            recognizer.current_detected = None
+        snapshot_dir = os.path.join(BASE_DIR, 'static', 'snapshots')
+        for filename in os.listdir(snapshot_dir):
+            if filename.startswith(student_id + '_') and filename.endswith('.jpg'):
+                os.remove(os.path.join(snapshot_dir, filename))
         return jsonify({"status": "success", "message": f"Đã xóa triệt để sinh viên {student_id}"})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
@@ -385,10 +427,12 @@ def delete_student(student_id):
 @app.route('/api/classes/add', methods=['POST'])
 @login_required
 def add_class():
-    cid = request.form.get('class_id')
-    name = request.form.get('class_name')
+    cid = request.form.get('class_id', '').strip()
+    name = request.form.get('class_name', '').strip()
+    if not cid or not name:
+        return jsonify(success=False, message='Vui lòng nhập mã lớp và tên lớp.'), 400
     conn = get_db_connection()
-    conn.execute("INSERT OR REPLACE INTO classes (class_id, class_name) VALUES (?, ?)", (cid, name))
+    conn.execute("INSERT INTO classes (class_id, class_name) VALUES (?, ?) ON CONFLICT(class_id) DO UPDATE SET class_name = excluded.class_name", (cid, name))
     conn.commit()
     conn.close()
     return redirect(url_for('classes_page'))

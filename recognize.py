@@ -5,9 +5,17 @@ import numpy as np
 import face_recognition
 from datetime import datetime
 from db_config import get_db_connection
+from feature_store import FEATURE_LOCK, EMBEDDINGS_FILE
+from functools import wraps
 
-EMBEDDINGS_FILE = os.path.join('datasets', 'face_features', 'embeddings.pickle')
-SNAPSHOT_DIR = os.path.join('static', 'snapshots')
+def synchronized(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        with FEATURE_LOCK:
+            return func(*args, **kwargs)
+    return wrapper
+
+SNAPSHOT_DIR = os.path.join(os.path.dirname(__file__), 'static', 'snapshots')
 os.makedirs(SNAPSHOT_DIR, exist_ok=True)
 
 class FaceRecognizer:
@@ -19,6 +27,7 @@ class FaceRecognizer:
         self.current_detected = None
         self.load_embeddings()
 
+    @synchronized
     def load_embeddings(self):
         if os.path.exists(EMBEDDINGS_FILE):
             try:
@@ -38,7 +47,9 @@ class FaceRecognizer:
 
     def get_current_detected(self):
         """Trả về thông tin người vừa quét cho API endpoint"""
-        return self.current_detected
+        if getattr(self, 'last_seen', None) and (datetime.now() - self.last_seen).total_seconds() < 5:
+            return self.current_detected
+        return None
 
     def get_student_info(self, student_id):
         conn = get_db_connection()
@@ -92,7 +103,9 @@ class FaceRecognizer:
             info['time'] = self.last_marked[student_id].strftime('%H:%M:%S - %d/%m/%Y')
 
         self.current_detected = info
+        self.last_seen = now
 
+    @synchronized
     def process_frame(self, frame):
         if not self.known_encodings:
             return frame
@@ -142,5 +155,3 @@ class FaceRecognizer:
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 200, 255), 2)
 
         return frame
-
-recognizer_engine = FaceRecognizer()

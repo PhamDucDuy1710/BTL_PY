@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tạo tài khoản quản trị</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #f1f5f9; padding: 40px 20px; color: #1e293b; }
+    main { max-width: 420px; margin: auto; padding: 28px; border-radius: 16px; background: white; }
+    label { display: block; margin: 16px 0 6px; }
+    input { box-sizing: border-box; width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; }
+    button { margin-top: 20px; padding: 12px; width: 100%; background: #2563eb; color: white; border: 0; border-radius: 8px; cursor: pointer; }
+    .error { color: #b91c1c; }
+  </style>
+</head>
+<body><main>
+  <h1>Tạo tài khoản quản trị</h1>
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  <form method="post">
+    <label for="username">Tên đăng nhập</label>
+    <input id="username" name="username" required maxlength="64" autocomplete="username">
+    <label for="password">Mật khẩu</label>
+    <input id="password" name="password" type="password" required autocomplete="new-password">
+    <label for="confirm_password">Xác nhận mật khẩu</label>
+    <input id="confirm_password" name="confirm_password" type="password" required autocomplete="new-password">
+    <button>Tạo tài khoản</button>
+  </form>
+  <p><a href="/dashboard">Về bảng quản trị</a></p>
+</main></body>
+</html>

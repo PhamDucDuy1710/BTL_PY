@@ -56,9 +56,14 @@ def init_db():
    
     admin = cur.execute("SELECT * FROM admins WHERE username = 'admin'").fetchone()
     if not admin:
-        default_hash = generate_password_hash("password")
+        initial_password = os.environ.get('ADMIN_PASSWORD')
+        if not initial_password:
+            conn.close()
+            raise RuntimeError('Database mới cần biến môi trường ADMIN_PASSWORD để tạo tài khoản admin.')
+        default_hash = generate_password_hash(initial_password)
         cur.execute("INSERT INTO admins (username, password) VALUES ('admin', ?)", (default_hash,))
 
+    cur.execute('CREATE INDEX IF NOT EXISTS idx_logs_date_student ON access_logs(date_only, student_id)')
     conn.commit()
     conn.close()
 

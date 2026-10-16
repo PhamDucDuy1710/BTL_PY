@@ -1,6 +1,15 @@
 import os
 import pickle
 import face_recognition
+from functools import wraps
+from feature_store import FEATURE_LOCK, write_embeddings
+
+def serialized_training(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        with FEATURE_LOCK:
+            return func(*args, **kwargs)
+    return wrapper
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, 'datasets', 'data')
@@ -21,6 +30,7 @@ def _load_existing_embeddings():
     return [], []
 
 
+@serialized_training
 def extract_and_update_features(target_student_id=None):
     """
     target_student_id=None  -> quét lại TOÀN BỘ DATA_DIR (dùng cho nút "Training" thủ công).
@@ -42,10 +52,11 @@ def extract_and_update_features(target_student_id=None):
         known_encodings, known_ids = [], []
         scan_targets = None  
 
+    previous_count = len(known_encodings)
     print(f"[*] Đang quét thư mục: {DATA_DIR}")
     if not os.path.exists(DATA_DIR):
         print("[!] Không tìm thấy thư mục data!")
-        return
+        raise RuntimeError('Không tìm thấy thư mục dữ liệu ảnh.')
 
     for student_id in (scan_targets if scan_targets is not None else os.listdir(DATA_DIR)):
         student_folder = os.path.join(DATA_DIR, student_id)
@@ -87,10 +98,13 @@ def extract_and_update_features(target_student_id=None):
                     except Exception as e:
                         print(f"   [!] Lỗi xử lý {img_name}: {e}")
 
-    with open(EMBEDDINGS_FILE, 'wb') as f:
-        pickle.dump({'encodings': known_encodings, 'ids': known_ids}, f)
+    if target_student_id and len(known_encodings) == previous_count:
+        raise RuntimeError('Không trích xuất được đặc trưng; hãy chụp lại khuôn mặt rõ nét.')
+    write_embeddings({'encodings': known_encodings, 'ids': known_ids})
 
     print(f"\n[*] Cập nhật đặc trưng thành công! Tổng số embeddings hiện tại: {len(known_encodings)}")
+
+    return f'Đã cập nhật {len(known_encodings)} đặc trưng khuôn mặt.'
 
 if __name__ == '__main__':
     extract_and_update_features()

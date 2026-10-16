@@ -131,7 +131,7 @@
             <tr>
               <td style="font-weight: 700; color: var(--text-muted);">{{ loop.index }}</td>
               <td>
-                <img src="/dataset_image/{{ s.student_id }}/{{ s.student_id }}_1.jpg" 
+                <img src="/dataset_image/{{ s.student_id }}/avatar.jpg"
                      class="avatar-sm" 
                      onerror="this.src='https://ui-avatars.com/api/?name={{ s.full_name }}&background=random'" 
                      alt="{{ s.student_id }}" />
@@ -249,7 +249,15 @@
 
       const video = document.getElementById('webcamVideo');
       const canvas = document.getElementById('captureCanvas');
-      canvas.width = video.videoWidth || 640;
+      if (!/^[A-Za-z0-9_-]{1,64}$/.test(student_id)) {
+        alert('Mã sinh viên chỉ gồm chữ, số, dấu gạch dưới hoặc gạch ngang.');
+        return;
+      }
+      if (!video.videoWidth || !streamTracker) {
+        alert('Vui lòng bật camera và đợi hình ảnh trước khi chụp.');
+        return;
+      }
+      canvas.width = video.videoWidth;
       canvas.height = video.videoHeight || 480;
 
       const ctx = canvas.getContext('2d');
@@ -259,7 +267,7 @@
       const btn = document.getElementById('btnSnapAndSave');
       const originalText = btn.innerHTML;
       btn.disabled = true;
-      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang lưu...`;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang kiểm tra và xử lý ảnh...`;
 
       try {
         const response = await fetch('/api/students/register_face', {

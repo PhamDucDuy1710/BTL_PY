@@ -1,4 +1,5 @@
-let lastRecordCount = -1;
+let lastLogSignature = null;
+let polling = false;
 
 // Đồng hồ hiển thị thời gian thực phía trên
 function initLiveDateTime() {
@@ -16,9 +17,12 @@ function initLiveDateTime() {
 
 // Polling dữ liệu nhận diện & Bảng danh sách điểm danh
 async function pollAttendanceState() {
+  if (polling) return;
+  polling = true;
   try {
     // 1. Quét thông tin sinh viên mới nhất
     const resCurrent = await fetch('/api/current-detected');
+    if (!resCurrent.ok) throw new Error('Không tải được thông tin nhận diện');
     const student = await resCurrent.json();
     const profileBox = document.getElementById('profile-box');
 
@@ -41,14 +45,20 @@ async function pollAttendanceState() {
       `;
     }
 
+    if (!student || !student.student_id) {
+      profileBox.textContent = 'Đang đợi nhận diện khuôn mặt...';
+    }
+
     // 2. Tải danh sách lịch sử ra vào
     const resLogs = await fetch('/api/access-logs');
+    if (!resLogs.ok) throw new Error('Không tải được lịch sử');
     const logs = await resLogs.json();
     document.getElementById('total-logs-count').innerText = logs.length;
 
     // Chỉ vẽ lại bảng khi số lượng bản ghi có thay đổi
-    if (logs.length !== lastRecordCount) {
-      lastRecordCount = logs.length;
+    const signature = JSON.stringify(logs);
+    if (signature !== lastLogSignature) {
+      lastLogSignature = signature;
       const tbody = document.getElementById('attendance-rows');
       tbody.innerHTML = logs.map(item => `
         <tr>
@@ -65,6 +75,8 @@ async function pollAttendanceState() {
     }
   } catch (err) {
     console.error("Lỗi đồng bộ dữ liệu:", err);
+  } finally {
+    polling = false;
   }
 }
 
