@@ -7,45 +7,73 @@ import db_config
 from recognize import FaceRecognizer
 
 
+# Kiểm thử HTTP bằng Flask test client, không mở trình duyệt hoặc webcam thật.
 class ApiTests(unittest.TestCase):
     @classmethod
+    # Tạo CSDL tạm trước khi import api để init_db không ghi vào dữ liệu thật.
     def setUpClass(cls):
         cls.temp = tempfile.TemporaryDirectory()
         cls.original_db = db_config.DB_PATH
         db_config.DB_PATH = os.path.join(cls.temp.name, 'test.db')
         with patch.dict(os.environ, {'ADMIN_PASSWORD': 'test-secret'}):
+            # Bỏ qua nạp mẫu khuôn mặt vì các bài kiểm thử này tập trung vào API.
             with patch.object(FaceRecognizer, 'load_embeddings'):
                 import api
         cls.api = api
         cls.api.app.config['TESTING'] = True
 
     @classmethod
+    # Khôi phục đường dẫn CSDL và dọn thư mục tạm sau toàn bộ lớp kiểm thử.
     def tearDownClass(cls):
         db_config.DB_PATH = cls.original_db
         cls.temp.cleanup()
 
+    # Mỗi ca kiểm thử có client mới để không dùng lại phiên đăng nhập của ca trước.
     def setUp(self):
         self.client = self.api.app.test_client()
 
+    # Giả lập phiên đã đăng nhập, không kiểm tra thuật toán xác thực mật khẩu ở đây.
     def login(self):
         with self.client.session_transaction() as session:
             session['admin'] = 'admin'
 
+    # Kiểm tra API/ảnh bị chặn và trang video chuyển tới login khi chưa đăng nhập.
     def test_private_endpoints(self):
         for url in ['/api/access-logs', '/api/current-detected', '/static/snapshots/example.jpg']:
             self.assertEqual(self.client.get(url).status_code, 401)
         self.assertEqual(self.client.get('/video_feed').status_code, 302)
 
+    # Xác nhận trang tạo tài khoản render thành công cho người đã đăng nhập.
     def test_registration_template_exists(self):
         self.login()
         self.assertEqual(self.client.get('/register').status_code, 200)
 
+    # Dùng generator giả để kiểm tra đóng response cũng đóng đăng ký xem camera.
+    def test_video_disconnect_closes_camera_subscription(self):
+        self.login()
+        closed = []
+
+        def frames():
+            try:
+                while True:
+                    yield b'jpeg'
+            finally:
+                closed.append(True)
+
+        with patch.object(self.api.camera_stream, 'frames', return_value=frames()):
+            response = self.client.get('/video_feed', buffered=False)
+            self.assertIn(b'jpeg', next(iter(response.response)))
+            response.close()
+        self.assertEqual(closed, [True])
+
+    # Mã chứa ../ phải bị từ chối trước khi tạo đường dẫn lưu ảnh.
     def test_reject_path_traversal_before_database_write(self):
         self.login()
         response = self.client.post('/api/students/register_face', json={
             'student_id': '../outside', 'full_name': 'Test', 'image': 'invalid'})
         self.assertEqual(response.status_code, 400)
 
+    # Dữ liệu không phải ảnh phải trả lỗi và không để lại hồ sơ sinh viên.
     def test_invalid_image_does_not_create_student(self):
         self.login()
         response = self.client.post('/api/students/register_face', json={
@@ -57,6 +85,7 @@ class ApiTests(unittest.TestCase):
         finally:
             conn.close()
 
+    # Đổi tên lớp không được làm mất liên kết với sinh viên đang thuộc lớp.
     def test_update_class_with_students(self):
         self.login()
         conn = db_config.get_db_connection()

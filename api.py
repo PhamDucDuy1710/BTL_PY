@@ -1,3 +1,4 @@
+# Điểm chạy máy chủ Flask: giao diện, xác thực, quản lý dữ liệu và API nhận diện.
 import os
 import cv2
 import sqlite3
@@ -23,25 +24,33 @@ from recognize import FaceRecognizer
 from add_persons import extract_and_update_features
 from camera_manager import camera_stream
 
+# Khởi tạo CSDL lúc import mô đun; database mới cần ADMIN_PASSWORD.
 init_db()
 
+# Dự án đặt cả mẫu HTML Jinja và tài nguyên CSS/JS trong thư mục static.
 app = Flask(__name__, template_folder='static', static_folder='static')
+# Khóa ký cookie phiên đăng nhập; nếu sinh ngẫu nhiên thì đăng nhập cũ hết hiệu lực sau khi restart.
 app.secret_key = os.environ.get('FLASK_SECRET_KEY') or secrets.token_hex(32)
+# Giới hạn request 6 MiB; HttpOnly chặn JavaScript đọc cookie, SameSite giảm gửi cookie chéo trang.
 app.config.update(MAX_CONTENT_LENGTH=6 * 1024 * 1024, SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Lax')
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# Tạo bộ nhận diện dùng chung và nạp vector; chưa mở webcam ở bước này.
 recognizer = FaceRecognizer()
 
 @app.before_request
+# Chặn tải trực tiếp ảnh minh chứng nếu chưa có phiên quản trị.
 def protect_snapshots():
     if request.path.startswith('/static/snapshots/') and 'admin' not in session:
         return jsonify(success=False, message='Chưa đăng nhập'), 401
 
 
+# Decorator kiểm tra đăng nhập trước khi thực hiện hàm xử lý trang hoặc API.
 def login_required(view_func):
     @wraps(view_func)
     def wrapper(*args, **kwargs):
         if 'admin' not in session:
+            # API trả JSON và HTTP 401; trang HTML chuyển hướng về màn hình đăng nhập.
             if request.path.startswith('/api/'):
                 return jsonify({"success": False, "message": "Chưa đăng nhập"}), 401
             return redirect(url_for('login'))
@@ -49,6 +58,7 @@ def login_required(view_func):
     return wrapper
 
 
+# Nạp lại vector trong RAM sau khi cập nhật tệp, không cần khởi động lại server.
 def reload_recognizer_memory():
     if hasattr(recognizer, 'load_known_faces'):
         recognizer.load_known_faces()
@@ -57,6 +67,7 @@ def reload_recognizer_memory():
 
 
 @serialized_training
+# Loại cả vector và nhãn của người bị xóa, giữ nguyên thứ tự tương ứng của các mẫu còn lại.
 def sync_pickle_after_deletion(deleted_student_id):
     emb_path = EMBEDDINGS_FILE
     if os.path.exists(emb_path):
@@ -80,6 +91,7 @@ def sync_pickle_after_deletion(deleted_student_id):
             print(f"[Cảnh báo] Lỗi đồng bộ pickle: {err}")
 
 
+# Hàm tương thích chữ ký cũ/mới của bộ trích xuất; lỗi được in thay vì ném lại.
 def safe_extract_features(student_id=None):
     try:
         sig = inspect.signature(extract_and_update_features)
@@ -93,6 +105,7 @@ def safe_extract_features(student_id=None):
 
 # --- AUTHENTICATION & TÀI KHOẢN ---
 @app.route('/')
+# Trang gốc chọn đích dựa trên trạng thái đăng nhập.
 def index():
     if 'admin' in session:
         return redirect(url_for('dashboard'))
@@ -100,6 +113,7 @@ def index():
 
 
 @app.route('/login', methods=['GET', 'POST'])
+# GET hiển thị form; POST đọc thông tin gửi lên và xác thực tài khoản.
 def login():
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
@@ -112,19 +126,23 @@ def login():
             db_pw = admin['password']
             is_valid = False
             try:
+                # So mật khẩu nhập với giá trị băm đã lưu.
                 is_valid = check_password_hash(db_pw, password)
             except Exception:
                 is_valid = (db_pw == password)
 
             
+            # Nhánh tương thích vẫn chấp nhận so văn bản trực tiếp; không phải mọi đường đăng nhập đều chỉ so hash.
             if is_valid or (db_pw == password):
                 
+                # Chuyển mật khẩu định dạng cũ sang băm khi đăng nhập thành công.
                 if not db_pw.startswith(('scrypt:', 'pbkdf2:')):
                     new_hash = generate_password_hash(password)
                     conn.execute("UPDATE admins SET password = ? WHERE id = ?", (new_hash, admin['id']))
                     conn.commit()
 
                 conn.close()
+                # Lưu dấu đăng nhập vào phiên Flask đã ký; không lưu mật khẩu trong phiên.
                 session['admin'] = username
                 return redirect(url_for('dashboard'))
 
@@ -136,6 +154,7 @@ def login():
 
 @app.route('/register', methods=['GET', 'POST'])
 @login_required
+# Đăng ký thêm tài khoản quản trị; khác với API đăng ký khuôn mặt sinh viên.
 def register():
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
@@ -166,6 +185,7 @@ def register():
 
 
 @app.route('/logout')
+# Xóa dấu đăng nhập trong phiên rồi chuyển về trang login.
 def logout():
     session.pop('admin', None)
     return redirect(url_for('login'))
@@ -174,6 +194,7 @@ def logout():
 
 @app.route('/dashboard')
 @login_required
+# Tổng hợp số lớp, số sinh viên và số mã sinh viên khác nhau đã được ghi nhận trong ngày.
 def dashboard():
     conn = get_db_connection()
     total_classes = conn.execute("SELECT COUNT(*) FROM classes").fetchone()[0]
@@ -181,14 +202,17 @@ def dashboard():
     
     today_str = datetime.now().strftime("%d/%m/%Y")
     
+    # DISTINCT tránh đếm lặp một người; điều kiện timestamp hỗ trợ bản ghi cũ chưa có date_only.
     checked_in = conn.execute("""
         SELECT COUNT(DISTINCT student_id) 
         FROM access_logs 
         WHERE date_only = ? OR timestamp LIKE ?
     """, (today_str, f"%{today_str}%")).fetchone()[0]
     
+    # Số chưa được ghi nhận hôm nay, chưa đủ để kết luận vắng một buổi học.
     not_checked_in = max(0, total_students - checked_in)
 
+    # LEFT JOIN giữ bản ghi lịch sử kể cả khi không tìm được hồ sơ sinh viên tương ứng.
     recent_logs = conn.execute("""
         SELECT a.student_id, s.full_name, s.class_id, a.timestamp, a.snapshot_path
         FROM access_logs a
@@ -210,6 +234,7 @@ def dashboard():
 
 @app.route('/students')
 @login_required
+# Đọc hồ sơ rồi truyền vào mẫu Jinja để tạo các hàng trong bảng sinh viên.
 def students_page():
     conn = get_db_connection()
     students = conn.execute("SELECT student_id, full_name, class_id FROM students").fetchall()
@@ -219,6 +244,7 @@ def students_page():
 
 @app.route('/classes')
 @login_required
+# Tải danh sách lớp cho trang quản lý.
 def classes_page():
     conn = get_db_connection()
     classes = conn.execute("SELECT class_id, class_name FROM classes").fetchall()
@@ -228,12 +254,14 @@ def classes_page():
 
 @app.route('/attendance')
 @login_required
+# Trả trang nhận diện; trình duyệt sẽ mở /video_feed và gọi các API cập nhật riêng.
 def attendance():
     return render_template('attendance.html')
 
 
 @app.route('/history')
 @login_required
+# Tải lịch sử và danh sách lớp; phần lọc trên trang thực hiện bằng JavaScript.
 def history_page():
     conn = get_db_connection()
     logs = conn.execute("""
@@ -252,7 +280,9 @@ def history_page():
 
 @app.route('/dataset_image/<student_id>/<filename>')
 @login_required
+# Phục vụ ảnh đăng ký sau đăng nhập; avatar.jpg đại diện bằng ảnh đầu tiên trong thư mục.
 def get_dataset_image(student_id, filename):
+    # Chỉ cho mã đơn giản để tránh đưa dấu phân cách hoặc ../ vào đường dẫn thư mục.
     if not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', student_id):
         return '', 404
     folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'datasets', 'data', student_id)
@@ -264,14 +294,21 @@ def get_dataset_image(student_id, filename):
 
 
 
+# Đóng gói từng JPEG thành các phần của luồng MJPEG để thẻ img hiển thị video.
 def generate_frames():
-    for frame_bytes in camera_stream.frames(recognizer.process_frame):
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+    frames = camera_stream.frames(recognizer.process_frame)
+    try:
+        for frame_bytes in frames:
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+    finally:
+        # Khi HTTP ngắt, đóng generator con để giảm người xem và trả camera nếu đây là người cuối.
+        frames.close()
 
 
 @app.route('/video_feed')
 @login_required
+# Response dạng luồng gửi liên tục, boundary=frame khớp dấu phân tách trong generate_frames.
 def video_feed():
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
@@ -279,12 +316,14 @@ def video_feed():
 
 @app.route('/api/current-detected')
 @login_required
+# Trả thông tin người mới nhận diện, hoặc JSON null khi thông tin quá hạn.
 def api_current_detected():
     return jsonify(recognizer.get_current_detected())
 
 
 @app.route('/api/access-logs')
 @login_required
+# Trả tối đa 50 lượt mới nhất cho giao diện cập nhật định kỳ, không phải toàn bộ lịch sử.
 def api_access_logs():
     conn = get_db_connection()
     logs = conn.execute("""
@@ -296,6 +335,7 @@ def api_access_logs():
     conn.close()
 
     data = []
+    # Đánh số hiển thị từ 1 và đổi đường dẫn ảnh sang dạng URL từ gốc website.
     for idx, row in enumerate(logs, 1):
         snap = row["snapshot_path"] or ""
         if snap and not snap.startswith("/"):
@@ -315,6 +355,7 @@ def api_access_logs():
 
 @app.route('/api/train', methods=['POST'])
 @login_required
+# Quét lại toàn bộ ảnh, tạo đặc trưng và nạp lại RAM; không huấn luyện lại mạng nhận diện.
 def api_train_features():
     try:
         msg = extract_and_update_features()
@@ -327,8 +368,10 @@ def api_train_features():
 @app.route('/api/students/register_face', methods=['POST'])
 @login_required
 @serialized_training
+# Đăng ký qua JSON: kiểm tra ảnh trước, lưu hồ sơ và ảnh, rồi cập nhật vector đồng bộ.
 def register_face():
     try:
+        # Đọc payload JSON từ fetch của trang students, gồm thông tin sinh viên và ảnh Base64.
         data = request.get_json(force=True)
         student_id = data.get('student_id', '').strip()
         full_name = data.get('full_name', '').strip()
@@ -338,17 +381,22 @@ def register_face():
         if not student_id or not full_name or not image_base64:
             return jsonify({"success": False, "message": "Vui lòng nhập đủ Mã SV, Tên và ảnh!"}), 400
 
+        # Chỉ cho mã đơn giản để tránh đưa dấu phân cách hoặc ../ vào đường dẫn thư mục.
         if not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', student_id):
             return jsonify(success=False, message='Mã sinh viên chỉ gồm chữ, số, dấu gạch dưới hoặc gạch ngang; tối đa 64 ký tự.'), 400
         if len(full_name) > 150 or len(class_id) > 100:
             return jsonify(success=False, message='Tên hoặc mã lớp quá dài.'), 400
         try:
+            # Bỏ tiền tố data:image/...;base64, nếu ảnh được gửi dưới dạng Data URL.
             raw = image_base64.split(',', 1)[-1]
             image_bytes = base64.b64decode(raw, validate=True)
+            # Base64 thành bytes, bytes thành mảng uint8, rồi giải mã thành ảnh BGR.
             image = cv2.imdecode(np.frombuffer(image_bytes, dtype=np.uint8), cv2.IMREAD_COLOR)
+            # Kiểm tra ảnh đọc được và không vượt 4 triệu pixel.
             if image is None or image.shape[0] * image.shape[1] > 4000000:
                 raise ValueError('Ảnh không hợp lệ hoặc kích thước quá lớn.')
             rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            # Ảnh đăng ký web phải có đúng một mặt để tránh gán nhãn nhầm người.
             if len(face_recognition.face_locations(rgb)) != 1:
                 raise ValueError('Ảnh cần có đúng một khuôn mặt rõ nét.')
         except (ValueError, TypeError) as error:
@@ -364,6 +412,7 @@ def register_face():
         conn.commit()
         conn.close()
 
+        # Hồ sơ đã commit trước bước lưu ảnh/vectorS; các thao tác này không cùng một giao dịch.
         save_dir = os.path.join(BASE_DIR, 'datasets', 'data', student_id)
         os.makedirs(save_dir, exist_ok=True)
 
@@ -371,16 +420,19 @@ def register_face():
             image_base64 = image_base64.split(',')[1]
 
         image_bytes = base64.b64decode(image_base64)
+        # Hậu tố ngẫu nhiên giảm nguy cơ trùng tên khi chụp nhiều ảnh.
         file_path = os.path.join(save_dir, f"{student_id}_{secrets.token_hex(8)}.jpg")
         
         with open(file_path, 'wb') as f:
             f.write(image_bytes)
 
         
+        # Chỉ xử lý lại ảnh của người vừa đăng ký, giữ nguyên các mẫu của người khác.
         def train_student(sid):
             extract_and_update_features(target_student_id=sid)
             reload_recognizer_memory()
 
+        # Chạy đồng bộ: chỉ báo thành công sau khi cập nhật vector và nạp lại bộ nhận diện.
         train_student(student_id)
 
         return jsonify({
@@ -389,6 +441,7 @@ def register_face():
         })
 
     except Exception as e:
+        # In chi tiết lỗi vào terminal để phục vụ tìm lỗi phía máy chủ.
         traceback.print_exc()
         return jsonify({"success": False, "message": f"Lỗi server: {str(e)}"}), 500
 
@@ -396,8 +449,10 @@ def register_face():
 @app.route('/api/students/delete/<student_id>', methods=['DELETE'])
 @login_required
 @serialized_training
+# Xóa hồ sơ, lịch sử, ảnh đăng ký, vector và trạng thái nhận diện của sinh viên.
 def delete_student(student_id):
     try:
+        # Chỉ cho mã đơn giản để tránh đưa dấu phân cách hoặc ../ vào đường dẫn thư mục.
         if not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', student_id):
             return jsonify(status='error', message='Mã sinh viên không hợp lệ.'), 400
         conn = get_db_connection()
@@ -412,6 +467,7 @@ def delete_student(student_id):
                 shutil.rmtree(p, ignore_errors=True)
 
         sync_pickle_after_deletion(student_id)
+        # Bỏ mốc chống ghi lặp; None giúp không báo lỗi nếu chưa từng có mốc.
         recognizer.last_marked.pop(student_id, None)
         if recognizer.current_detected and recognizer.current_detected['student_id'] == student_id:
             recognizer.current_detected = None
@@ -426,13 +482,17 @@ def delete_student(student_id):
 
 @app.route('/api/classes/add', methods=['POST'])
 @login_required
+# Nhận FormData; nếu mã lớp đã có thì cập nhật tên, không xóa rồi tạo lại lớp.
 def add_class():
     cid = request.form.get('class_id', '').strip()
     name = request.form.get('class_name', '').strip()
     if not cid or not name:
         return jsonify(success=False, message='Vui lòng nhập mã lớp và tên lớp.'), 400
     conn = get_db_connection()
-    conn.execute("INSERT INTO classes (class_id, class_name) VALUES (?, ?) ON CONFLICT(class_id) DO UPDATE SET class_name = excluded.class_name", (cid, name))
+    conn.execute(
+        "INSERT INTO classes (class_id, class_name) VALUES (?, ?) " 
+        "ON CONFLICT(class_id) DO UPDATE SET class_name = excluded.class_name", 
+        (cid, name))
     conn.commit()
     conn.close()
     return redirect(url_for('classes_page'))
@@ -440,6 +500,7 @@ def add_class():
 
 @app.route('/api/classes/delete/<class_id>', methods=['DELETE'])
 @login_required
+# Kiểm tra còn sinh viên trước khi xóa lớp để không làm đứt liên kết dữ liệu.
 def delete_class(class_id):
     conn = get_db_connection()
     
@@ -458,4 +519,5 @@ def delete_class(class_id):
 
 
 if __name__ == '__main__':
+    # Lắng nghe cổng 5001 trên các địa chỉ mạng của máy; debug=False nên sửa mã cần restart.
     app.run(host='0.0.0.0', port=5001, debug=False)

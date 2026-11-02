@@ -1,12 +1,15 @@
+# Tạo dữ liệu đặc trưng từ ảnh đăng ký; dùng mô hình có sẵn, không huấn luyện lại mạng AI.
 import os
 import pickle
 import face_recognition
 from functools import wraps
 from feature_store import FEATURE_LOCK, write_embeddings
 
+# Dùng chung khóa với bộ nhận diện để các lần cập nhật không ghi đè nhau.
 def serialized_training(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
+        # RLock cho phép cùng thread đi qua nhiều hàm đã khóa mà không tự khóa chính mình.
         with FEATURE_LOCK:
             return func(*args, **kwargs)
     return wrapper
@@ -18,6 +21,7 @@ EMBEDDINGS_FILE = os.path.join(FEATURES_DIR, 'embeddings.pickle')
 
 os.makedirs(FEATURES_DIR, exist_ok=True)
 
+# Đọc hai danh sách song song: vector mẫu và mã sinh viên của từng vector.
 def _load_existing_embeddings():
     """Nạp embeddings.pickle hiện có (nếu có) để phục vụ cập nhật tăng dần."""
     if os.path.exists(EMBEDDINGS_FILE):
@@ -39,10 +43,12 @@ def extract_and_update_features(target_student_id=None):
                                   Đây là chế độ nên dùng mỗi khi có 1 sinh viên vừa đăng ký
                                   ảnh mới qua web, để tránh phải quét lại hàng trăm ảnh cũ.
     """
+    # Chế độ cập nhật một người: giữ mẫu người khác, thay toàn bộ mẫu cũ của người đang cập nhật.
     if target_student_id:
         prev_encodings, prev_ids = _load_existing_embeddings()
         known_encodings, known_ids = [], []
         for enc, sid in zip(prev_encodings, prev_ids):
+            # Chỉ giữ vector không thuộc sinh viên cần xử lý lại.
             if str(sid) != str(target_student_id):
                 known_encodings.append(enc)
                 known_ids.append(sid)
@@ -50,14 +56,17 @@ def extract_and_update_features(target_student_id=None):
         print(f"[*] Chế độ tăng dần: chỉ xử lý lại sinh viên {target_student_id}")
     else:
         known_encodings, known_ids = [], []
+        # None nghĩa là quét lại toàn bộ thư mục sinh viên và xây dựng lại danh sách mẫu.
         scan_targets = None  
 
+    # Ghi số mẫu đã giữ để sau đó kiểm tra có tạo được mẫu mới cho sinh viên đích hay không.
     previous_count = len(known_encodings)
     print(f"[*] Đang quét thư mục: {DATA_DIR}")
     if not os.path.exists(DATA_DIR):
         print("[!] Không tìm thấy thư mục data!")
         raise RuntimeError('Không tìm thấy thư mục dữ liệu ảnh.')
 
+    # Mỗi thư mục con mang mã sinh viên, bên trong là các ảnh đăng ký.
     for student_id in (scan_targets if scan_targets is not None else os.listdir(DATA_DIR)):
         student_folder = os.path.join(DATA_DIR, student_id)
         if os.path.isdir(student_folder):
@@ -66,31 +75,38 @@ def extract_and_update_features(target_student_id=None):
                 if img_name.lower().endswith(('.jpg', '.jpeg', '.png')):
                     img_path = os.path.join(student_folder, img_name)
                     try:
+                        # Đọc ảnh theo định dạng RGB mà thư viện nhận diện sử dụng.
                         image = face_recognition.load_image_file(img_path)
 
                         
+                        # Thử bộ phát hiện HOG; phóng lớn ảnh trong bước tìm mặt để hỗ trợ mặt nhỏ.
                         face_locations = face_recognition.face_locations(image, number_of_times_to_upsample=2, model="hog")
 
                         if not face_locations:
+                            # Nếu chưa tìm được mặt, thử tăng mức phóng lớn, đổi lại tốn thêm thời gian xử lý.
                             face_locations = face_recognition.face_locations(image, number_of_times_to_upsample=3, model="hog")
                         if not face_locations:
                             try:
+                                # Thử bộ phát hiện CNN dự phòng nếu các lần HOG không tìm được mặt.
                                 face_locations = face_recognition.face_locations(image, number_of_times_to_upsample=1, model="cnn")
                             except Exception as e_cnn:
                                 
                                 print(f"   [i] Model CNN không khả dụng trên máy này ({e_cnn}), giữ nguyên kết quả HOG.")
 
                        
+                        # Ảnh nhập trực tiếp từ thư mục có thể nhiều mặt; chọn mặt lớn nhất. API web đã yêu cầu đúng một mặt.
                         if len(face_locations) > 1:
                             print(f"   [!] Cảnh báo: {img_name} có {len(face_locations)} khuôn mặt, chỉ lấy mặt lớn nhất.")
                             
                             face_locations = [max(face_locations, key=lambda loc: (loc[2]-loc[0]) * (loc[1]-loc[3]))]
 
                         
+                        # Tạo vector số biểu diễn khuôn mặt tại vị trí vừa chọn.
                         encs = face_recognition.face_encodings(image, known_face_locations=face_locations)
 
                         if len(encs) > 0:
                             known_encodings.append(encs[0])
+                            # Thêm nhãn cùng lúc với vector để bảo đảm hai danh sách luôn tương ứng theo chỉ số.
                             known_ids.append(student_id)
                             print(f"   [+] OK: {img_name} (Tìm thấy {len(encs)} mặt)")
                         else:
@@ -100,14 +116,15 @@ def extract_and_update_features(target_student_id=None):
 
     if target_student_id and len(known_encodings) == previous_count:
         raise RuntimeError('Không trích xuất được đặc trưng; hãy chụp lại khuôn mặt rõ nét.')
+    # Ghi qua tệp tạm và thay thế tệp đích để tránh đọc phải dữ liệu mới ghi một phần.
     write_embeddings({'encodings': known_encodings, 'ids': known_ids})
 
     print(f"\n[*] Cập nhật đặc trưng thành công! Tổng số embeddings hiện tại: {len(known_encodings)}")
 
     return f'Đã cập nhật {len(known_encodings)} đặc trưng khuôn mặt.'
 
+# Chỉ quét toàn bộ khi chạy trực tiếp python add_persons.py; import không tự quét.
 if __name__ == '__main__':
     extract_and_update_features()
 
 
-#akdfasdkdf

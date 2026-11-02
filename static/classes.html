@@ -1,3 +1,4 @@
+{# Quản lý lớp: dữ liệu classes từ Flask, form gửi tới API thêm hoặc cập nhật tên lớp. #}
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -180,6 +181,7 @@
   </div>
 
   <script>
+    // Hiển thị thời gian máy khách theo định dạng tiếng Việt.
     function updateClock() {
       const d = new Date();
       document.getElementById('liveClock').innerText = d.toLocaleString('vi-VN');
@@ -195,6 +197,7 @@
     // GIỜ: dùng fetch() cho cả 2 thao tác để nhất quán. Gửi FormData (không phải JSON)
     // để KHÔNG cần sửa route /api/classes/add bên backend (vẫn đọc bằng request.form.get()).
     document.getElementById('addClassForm').addEventListener('submit', async (e) => {
+      // Chặn submit mặc định để JavaScript chủ động gửi form bằng fetch.
       e.preventDefault();
       const form = e.target;
       const saveBtn = form.querySelector('.btn-save');
@@ -203,6 +206,7 @@
       saveBtn.innerText = 'Đang lưu...';
 
       try {
+        // FormData tương ứng request.form bên Flask; fetch mặc định theo chuyển hướng trả về.
         const res = await fetch('/api/classes/add', { method: 'POST', body: new FormData(form) });
         if (res.ok) {
           closeModal();
@@ -219,6 +223,7 @@
       }
     });
 
+    // So từ khóa không phân biệt hoa thường với văn bản của các hàng hiện có.
     function filterClasses() {
       const val = document.getElementById('searchInput').value.toLowerCase();
       const rows = document.querySelectorAll('#classesTableBody tr');
@@ -228,6 +233,7 @@
       });
     }
 
+    // Gửi DELETE; server sẽ từ chối nếu lớp vẫn còn sinh viên.
     async function deleteClass(classId) {
       if (!confirm(`Bạn có chắc muốn xóa lớp ${classId}?`)) return;
       try {

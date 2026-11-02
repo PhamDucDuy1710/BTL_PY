@@ -1,5 +1,7 @@
+# Tiện ích đọc nhanh dữ liệu từ SQLite trong terminal, không thay đổi các bản ghi.
 from db_config import get_db_connection
 
+# In danh sách lớp, sinh viên và 10 lượt ghi nhận mới nhất.
 def check_tables():
     conn = get_db_connection()
     cur = conn.cursor()
@@ -16,7 +18,9 @@ def check_tables():
     for row in cur.execute("SELECT * FROM access_logs ORDER BY id DESC LIMIT 10").fetchall():
         print(f"ID: {row['id']} | SV: {row['student_id']} | Thời gian: {row['timestamp']} | Ảnh: {row['snapshot_path']}")
 
+    # Đóng kết nối sau khi đọc xong để trả tài nguyên cho SQLite.
     conn.close()
 
+# Chỉ thực hiện khi chạy python check_attendance_table.py.
 if __name__ == '__main__':
     check_tables()
