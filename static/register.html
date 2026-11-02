@@ -1,4 +1,4 @@
-{# Form tạo tài khoản quản trị mới, yêu cầu đã đăng nhập; không phải đăng ký khuôn mặt. #}
+{# Form đăng ký công khai tài khoản quản trị; không phải đăng ký khuôn mặt. #}
 <!doctype html>
 <html lang="vi">
 <head>
@@ -26,6 +26,6 @@
     <input id="confirm_password" name="confirm_password" type="password" required autocomplete="new-password">
     <button>Tạo tài khoản</button>
   </form>
-  <p><a href="/dashboard">Về bảng quản trị</a></p>
+  <p>Đã có tài khoản? <a href="{{ url_for('login') }}">Đăng nhập</a></p>
 </main></body>
 </html>

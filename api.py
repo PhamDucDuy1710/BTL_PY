@@ -18,6 +18,7 @@ from add_persons import serialized_training
 from datetime import datetime
 from flask import Flask, render_template, Response, request, redirect, url_for, session, jsonify, send_from_directory
 from werkzeug.security import check_password_hash, generate_password_hash
+from flask import flash
 
 from db_config import get_db_connection, init_db
 from recognize import FaceRecognizer
@@ -153,8 +154,7 @@ def login():
 
 
 @app.route('/register', methods=['GET', 'POST'])
-@login_required
-# Đăng ký thêm tài khoản quản trị; khác với API đăng ký khuôn mặt sinh viên.
+# Đăng ký công khai tài khoản quản trị theo phạm vi của dự án.
 def register():
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
@@ -179,7 +179,8 @@ def register():
         conn.commit()
         conn.close()
 
-        return redirect(url_for('dashboard'))
+        flash('Tạo tài khoản quản trị thành công. Bạn có thể đăng nhập bằng tài khoản vừa tạo.')
+        return redirect(url_for('login'))
 
     return render_template('register.html')
 

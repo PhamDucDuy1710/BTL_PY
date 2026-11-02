@@ -43,10 +43,50 @@ class ApiTests(unittest.TestCase):
             self.assertEqual(self.client.get(url).status_code, 401)
         self.assertEqual(self.client.get('/video_feed').status_code, 302)
 
-    # Xác nhận trang tạo tài khoản render thành công cho người đã đăng nhập.
+    # Người chưa đăng nhập có thể mở form từ trang login.
     def test_registration_template_exists(self):
-        self.login()
         self.assertEqual(self.client.get('/register').status_code, 200)
+        self.assertIn(b'href="/register"', self.client.get('/login').data)
+
+    def test_public_registration_and_login(self):
+        response = self.client.post('/register', data={
+            'username': 'public_test_admin', 'password': 'new-test-password',
+            'confirm_password': 'new-test-password'}, follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Tạo tài khoản quản trị thành công'.encode(), response.data)
+        conn = db_config.get_db_connection()
+        try:
+            row = conn.execute("SELECT password FROM admins WHERE username = ?",
+                               ('public_test_admin',)).fetchone()
+            self.assertNotEqual(row['password'], 'new-test-password')
+            self.assertTrue(self.api.check_password_hash(row['password'], 'new-test-password'))
+        finally:
+            conn.close()
+        response = self.client.post('/login', data={
+            'username': 'public_test_admin', 'password': 'new-test-password'})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers['Location'], '/dashboard')
+
+    def test_public_registration_rejects_duplicate(self):
+        response = self.client.post('/register', data={
+            'username': 'admin', 'password': 'replacement',
+            'confirm_password': 'replacement'})
+        self.assertIn('Tên đăng nhập này đã tồn tại'.encode(), response.data)
+        response = self.client.post('/login', data={
+            'username': 'admin', 'password': 'test-secret'})
+        self.assertEqual(response.headers['Location'], '/dashboard')
+
+    def test_public_registration_rejects_mismatch(self):
+        response = self.client.post('/register', data={
+            'username': 'mismatch_admin', 'password': 'one',
+            'confirm_password': 'two'})
+        self.assertIn('Mật khẩu xác nhận không khớp'.encode(), response.data)
+        conn = db_config.get_db_connection()
+        try:
+            self.assertIsNone(conn.execute(
+                "SELECT id FROM admins WHERE username = 'mismatch_admin'").fetchone())
+        finally:
+            conn.close()
 
     # Dùng generator giả để kiểm tra đóng response cũng đóng đăng ký xem camera.
     def test_video_disconnect_closes_camera_subscription(self):
